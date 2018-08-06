@@ -23,8 +23,9 @@ setup(
         "Development Status :: 3 - Alpha",
     ),
     python_requires=">=3.6",
-    install_requires=["aiohttp", "beautifulsoup4", "click", "humanfriendly"],
+    install_requires=["aiohttp", "click", "humanfriendly"],
     tests_require=["testing-aiohttp"],
     entry_points={"console_scripts": ["pypi_stats = pypistats:main"]},
-    test_suite="pypistats_test",
+    # TODO: Add tests if this gets real use anywhere
+    # test_suite="pypistats_test",
 )

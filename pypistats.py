@@ -2,7 +2,6 @@
 
 import aiohttp
 import asyncio
-import bs4
 import humanfriendly
 import logging
 import sys
@@ -28,80 +27,52 @@ def _handle_debug(
     return debug
 
 
-def get_file_sizes(html: str) -> Dict:
-    project_sizes: Dict[str, int] = {}
-    soup = bs4.BeautifulSoup(html, "html.parser")
-    tds = soup.findAll("td")
-
-    for td in tds:
-        if not td:
-            continue
-
-        try:
-            fs_bytes = int(td.contents[0])
-        except ValueError:
-            package_name = td.contents[0]
-            continue
-
-        project_sizes[package_name] = fs_bytes
-
-    return project_sizes
-
-
-async def get_stats(url: str = "https://pypi.org/stats") -> str:
-    async with aiohttp.ClientSession() as session:
+async def get_stats(url: str = "https://pypi.org/stats/") -> Dict:
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    async with aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url) as resp:
             if resp.status == 200:
-                return await resp.text()
-            LOG.error(f"Error HTTP get to {url}: Returned {resp.status}")
-            return ''
+                return await resp.json()
+            LOG.error(f"Error HTTP GET to {url}: Returned {resp.status}")
+            return {}
 
 
 def print_bandersnatch_ini(fs_stats: Dict) -> None:
     print("[blacklist]\npackages =")
-    for pkg_name, _pkg_bytes in fs_stats.items():
-        if "All of PyPI" in pkg_name:
-            continue
+    for pkg_name in fs_stats["top_packages"].keys():
         print(f"    {pkg_name}")
 
 
 def print_humanfriendly(fs_stats: Dict) -> None:
     print("Top PyPI Disk Users:")
+    total_pypi_size = fs_stats["total_packages_size"]
     top_total_bytes = 0
-    for pkg_name, pkg_bytes in fs_stats.items():
-        if "All of PyPI" in pkg_name:
-            total_pypi_size = pkg_bytes
-        else:
-            top_total_bytes += pkg_bytes
+    for pkg_name, pkg_data in fs_stats["top_packages"].items():
+        top_total_bytes += pkg_data["size"]
 
-        print(
-            f"{pkg_name}: "
-            + f"{humanfriendly.format_size(humanfriendly.parse_size(str(pkg_bytes)))}"
+        hfs = humanfriendly.format_size(
+            humanfriendly.parse_size(str(pkg_data["size"]))
         )
+        print(f"{pkg_name}: {hfs}")
 
     pct = int((top_total_bytes / total_pypi_size) * 100)
-    print(
-        f"\nTop Packages consume " +
-        f"{humanfriendly.format_size(humanfriendly.parse_size(str(top_total_bytes)))}"
-    )
-    print(f"- This is {pct}% of PyPI")
+    ttb = humanfriendly.format_size(humanfriendly.parse_size(str(top_total_bytes)))
+    print(f"\nTop Packages consume {ttb}\n- This is {pct}% of PyPI")
 
 
 async def async_main(bandersnatch_ini: bool, debug: bool) -> int:
-    html = await get_stats()
-    if not html:
-        LOG.error(f"Unable to get stat from PyPI endpoint. Exiting")
-        return 1
-
-    fs_stats = get_file_sizes(html)
-    if not fs_stats:
-        LOG.error(f"Didn't get valid Package size stats. Returning")
+    stats_json = await get_stats()
+    if not stats_json:
+        LOG.error(f"Unable to get stats from PyPI endpoint. Exiting")
         return 69
 
     if bandersnatch_ini:
-        print_bandersnatch_ini(fs_stats)
+        print_bandersnatch_ini(stats_json)
     else:
-        print_humanfriendly(fs_stats)
+        print_humanfriendly(stats_json)
 
     return 0
 
