@@ -1,8 +1,10 @@
 # pypistats
+
 Client to parse out stats from PyPI Stats endpoint
 
-Simple CLI to generate Human readable from the raw bytes or a
-bandersnatch backlist ini format output.
+Simple CLI to today can:
+- generate Human readable from the raw bytes
+- generate bandersnatch (https://github.com/pypa/bandersnatch) backlist ini formatted output
 
 ## Usage:
 
