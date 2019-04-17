@@ -41,7 +41,9 @@ async def get_stats(url: str = "https://pypi.org/stats/") -> Dict:
 
 
 def print_bandersnatch_ini(fs_stats: Dict) -> None:
-    print("[blacklist]\npackages =")
+    print("[blacklist]\nplugins =")
+    print("    blacklist_project")
+    print("packages =")
     for pkg_name in fs_stats["top_packages"].keys():
         print(f"    {pkg_name}")
 
