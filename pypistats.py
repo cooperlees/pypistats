@@ -27,16 +27,16 @@ def _handle_debug(
     return debug
 
 
-async def get_stats(url: str = "https://pypi.org/stats/") -> Dict:
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
+async def get_stats(url: str = "https://pypi.org/stats", debug: bool = False) -> Dict:
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url) as resp:
             if resp.status == 200:
                 return await resp.json()
             LOG.error(f"Error HTTP GET to {url}: Returned {resp.status}")
+            if debug:
+                output = await resp.text()
+                LOG.debug(f"{output}")
             return {}
 
 
@@ -55,9 +55,7 @@ def print_humanfriendly(fs_stats: Dict) -> None:
     for pkg_name, pkg_data in fs_stats["top_packages"].items():
         top_total_bytes += pkg_data["size"]
 
-        hfs = humanfriendly.format_size(
-            humanfriendly.parse_size(str(pkg_data["size"]))
-        )
+        hfs = humanfriendly.format_size(humanfriendly.parse_size(str(pkg_data["size"])))
         print(f"{pkg_name}: {hfs}")
 
     pct = int((top_total_bytes / total_pypi_size) * 100)
@@ -66,7 +64,7 @@ def print_humanfriendly(fs_stats: Dict) -> None:
 
 
 async def async_main(bandersnatch_ini: bool, debug: bool) -> int:
-    stats_json = await get_stats()
+    stats_json = await get_stats(debug=debug)
     if not stats_json:
         LOG.error(f"Unable to get stats from PyPI endpoint. Exiting")
         return 69
