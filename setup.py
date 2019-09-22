@@ -9,7 +9,7 @@ assert version_info >= (3, 6, 0), f" pypistats requires >= Python 3.6"
 
 setup(
     name="pypistats",
-    version="18.8.5",
+    version="19.9.22",
     description=("Client to use PyPI stats"),
     py_modules=["pypistats"],
     url="http://github.com/cooperlees/pypistats",

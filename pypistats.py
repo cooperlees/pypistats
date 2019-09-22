@@ -5,7 +5,7 @@ import asyncio
 import humanfriendly
 import logging
 import sys
-from typing import Dict, Union
+from typing import Dict, List, Tuple, Union
 
 import click
 
@@ -40,19 +40,18 @@ async def get_stats(url: str = "https://pypi.org/stats", debug: bool = False) ->
             return {}
 
 
-def print_bandersnatch_ini(fs_stats: Dict) -> None:
-    print("[blacklist]\nplugins =")
-    print("    blacklist_project")
+def print_bandersnatch_ini(fs_stats: List[Tuple[str, Dict]]) -> None:
+    print("[plugins]\n    enabled = blacklist_project\n")
+    print("[blacklist]")
     print("packages =")
-    for pkg_name in fs_stats["top_packages"].keys():
+    for pkg_name, _pkg_data in fs_stats:
         print(f"    {pkg_name}")
 
 
-def print_humanfriendly(fs_stats: Dict) -> None:
+def print_humanfriendly(fs_stats: List[Tuple[str, Dict]], total_pypi_size: int) -> None:
     print("Top PyPI Disk Users:")
-    total_pypi_size = fs_stats["total_packages_size"]
     top_total_bytes = 0
-    for pkg_name, pkg_data in fs_stats["top_packages"].items():
+    for pkg_name, pkg_data in fs_stats:
         top_total_bytes += pkg_data["size"]
 
         hfs = humanfriendly.format_size(humanfriendly.parse_size(str(pkg_data["size"])))
@@ -69,10 +68,16 @@ async def async_main(bandersnatch_ini: bool, debug: bool) -> int:
         LOG.error(f"Unable to get stats from PyPI endpoint. Exiting")
         return 69
 
+    import json
+
+    sorted_packages = sorted(
+        stats_json["top_packages"].items(), key=lambda x: x[1]["size"], reverse=True
+    )
+
     if bandersnatch_ini:
-        print_bandersnatch_ini(stats_json)
+        print_bandersnatch_ini(sorted_packages)
     else:
-        print_humanfriendly(stats_json)
+        print_humanfriendly(sorted_packages, stats_json["total_packages_size"])
 
     return 0
 
